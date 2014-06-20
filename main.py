@@ -22,6 +22,7 @@ class Node(object):
   def __init__(self):
     self.records = [] # 2*ORDER
     self.pointers = [] # 2*ORDER + 1
+    self.count = 0
     super(Node, self).__init__()
 
 
@@ -67,7 +68,8 @@ class Application(object):
       if operation is 'i':
         self.insert_record()
       elif operation is 'c':
-        self.query()
+        value = raw_input()
+        self.query(value)
       elif operation is 'r':
         value = raw_input()
         self.remove(value=value)
@@ -95,16 +97,33 @@ class Application(object):
       pass
 
     if isinstance(obj, Node): # IF RETRIEVE THE ROOT
-      print 'is instance'
+      node = obj
+      if node.count < (2 * self.ORDER): # ONLY IF HAS SPACE IN NODE
+        for idx,n in enumerate(node.records):
+          if value < n.value and node.pointers[idx] != 0:
+            # tenho que inserir antes
+            node.reports[:0] = r
+            node.count += 1
+            # falta atualizar
+          elif value > n.value:
+            pass
+          elif value is n.value
+            print 'chave ja existente: %s' % value
     else:
       # CREATE THE ROOT
       node = Node()
-      node.records.append(r)
-      node.pointers.append(0)
-      self.file.seek(0)
-      self.file.write(pickle.dumps(node))
-      self.close_file()
-      return True
+      if node.count < (2 * self.ORDER):
+        node.records.append(r)
+        node.pointers.append(0)
+        node.count += 1
+        self.file.seek(0)
+        self.file.write(pickle.dumps(node))
+        self.close_file()
+        return True
+      # else: tem q criar outro no pra inserir
+
+  def query(self, value):
+    pass
 
   def open_file(self):
     self.file = open(self.filename, 'r+b')
