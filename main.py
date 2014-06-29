@@ -172,6 +172,7 @@ class Application(object):
     # primeiro tenho que verificar se o pai vai virar um novo nó ou será inserido em algum outro nó
     if parent:
       # tenho que tentar passar ele pra o pai
+        # e aqui dentro case tenha pai terei q chamar a recursao
       pass
     else:
       # ou seja, eu vou substituir a atual raiz pelo node_root (overriding)
@@ -186,8 +187,36 @@ class Application(object):
       self.file.write(pickle.dumps(node_root))
       self.close_file()
 
-  def query(self, value):
-    pass
+  def query(self, value, position=None):
+    self.open_file()
+    self.file.seek((position or 0) * self.STRUCT_SIZE)
+    node = None
+    try:
+      node = pickle.loads(self.file.read())
+    except Exception:
+      pass
+    if node:
+      for n,idx in enumerate(node.records):
+        if value == n.value:
+          print 'chave: %s' n.value
+          print n.label
+          print n.age
+          return True
+
+        if value < n.value:
+          if not n.pointers[idx]: # ou seja, caso não tenha filho
+            print 'chave não encontrada: %s' % value
+          else: # tenho que descer pra o filho à esquerda
+            index = n.pointers[idx]
+            return self.query(value=value, position=index) # chamando a recursão para o outro nó
+
+        if value > n.value and value < node.records[idx + 1 if idx+1 < node.count else idx].value:
+          # ou seja, cheguei no intervalo do numero desejado mas n achei um filho
+          if node.pointers[idx] == 0:
+            print 'chave não encontrada: %s' % value
+            return False
+          index = n.pointers[idx]
+          return self.query(value=value, position=index) # chamando a recursão para o outro nó
 
   def open_file(self):
     self.file = open(self.filename, 'r+b')
