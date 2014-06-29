@@ -5,7 +5,12 @@
 # Author: @marciovicente
 # Email: marciovicente.filho@gmail.com
 
-import sys, struct, os, pickle
+import sys
+import struct
+import os
+import pickle
+import math
+
 sys.path.insert(0, 'libs/')
 
 class Record(object):
@@ -23,6 +28,7 @@ class Node(object):
     self.records = [] # 2*ORDER
     self.pointers = [] # 2*ORDER + 1
     self.count = 0
+    self.parent = None
     super(Node, self).__init__()
 
 
@@ -34,6 +40,7 @@ class Application(object):
     self.file = None
     self.ORDER = 2
     self.STRUCT_SIZE = 2
+    self.SLOTS = 0
     super(Application, self).__init__()
 
   def init_file(self):
@@ -78,18 +85,18 @@ class Application(object):
       operation = raw_input()
     return
 
-  def insert_record(self):
-    value = raw_input()
+  def insert_record(self, value=None, index=None):
+    value = int(raw_input())
     label = raw_input()
-    age = raw_input()
+    age = int(raw_input())
 
     r = Record()
-    r.value = int(value)
+    r.value = value
     r.label = label
-    r.age = int(age)
+    r.age = age
 
     self.open_file()
-    self.file.seek(0)
+    self.file.seek((index or 0) * self.STRUCT_SIZE)
     obj = None
     try:
       obj = pickle.loads(self.file.read())
@@ -100,27 +107,84 @@ class Application(object):
       node = obj
       if node.count < (2 * self.ORDER): # ONLY IF HAS SPACE IN NODE
         for idx,n in enumerate(node.records):
-          if value < n.value and node.pointers[idx] != 0:
-            # tenho que inserir antes
-            node.reports[:0] = r
-            node.count += 1
-            # falta atualizar
-          elif value > n.value:
-            pass
-          elif value is n.value
+          if value == n.value:
             print 'chave ja existente: %s' % value
+            return False
+
+          if value < n.value and node.pointers[idx] == 0:
+            # tenho que inserir antes
+            node.records.insert(idx-1 if idx > 0 else idx, r)
+            node.pointers.insert(idx, 0)
+            node.count += 1
+            self.SLOTS += 1
+            self.file.seek(0)
+            self.file.write(pickle.dumps(node))
+            self.close_file()
+            return True
+          import pdb; pdb.set_trace()
+          if value > n.value and value < node.records[idx + 1 if idx+1 < node.count else idx].value and node.pointers[idx] == 0:
+            import pdb; pdb.set_trace()
+            node.records.insert(idx, r)
+            node.pointers.insert(idx, 0)
+            node.count += 1
+            self.SLOTS += 1
+            self.file.seek(0)
+            self.file.write(pickle.dumps(node))
+            self.close_file()
+            return True
+          elif node.pointers[idx] != 0: # ou seja, caso exista um nó filho
+            node_to_insert = node.pointers[idx]
+            return self.insert_record(value=value, index=node_to_insert) # chamo a recursão para a proxima pagina
+          # return True
+      else:
+        # primeiro tenho que inserir pra achar o do meio
+        # tenho que percorrer todo a lista pra achar a posição
+        aux_node = node.records
+        for idx,n in enumerate(node.records):
+          if value < node.records[idx].value:
+            aux_node.insert(idx, r) # insiro temporariamente para achar o meio
+            break
+        medium = aux_node[len(node.records)/2 + 1] # esse é o nó que vira raiz
+        self.split_tree(aux_node[:self.ORDER], medium, aux_node[-self.ORDER:], parent=True if node.parent else False)
+
     else:
       # CREATE THE ROOT
       node = Node()
-      if node.count < (2 * self.ORDER):
-        node.records.append(r)
-        node.pointers.append(0)
-        node.count += 1
-        self.file.seek(0)
-        self.file.write(pickle.dumps(node))
-        self.close_file()
-        return True
+      node.records.append(r)
+      node.pointers.append(0)
+      node.count += 1
+      self.SLOTS += 1
+      self.file.seek(0)
+      self.file.write(pickle.dumps(node))
+      self.close_file()
+      return True
       # else: tem q criar outro no pra inserir
+
+  def split_tree(self, left_child, medium, right_child, parent=False):
+    # a pagina que tiver left_child e right_child deve ter o parent apontando median
+    # mas antes tenho que testar se posso inserir median em alguma outra raiz
+    left_node = right_node = Node()
+
+    left_node.records = left_child
+    left_node.count = right_node.count = len(left_child) # Considerando que ambos tem o mesmo tamanho
+    right_node.records = right_child
+    left_node.parent = right_node.parent = medium # setando o pai
+    # primeiro tenho que verificar se o pai vai virar um novo nó ou será inserido em algum outro nó
+    if parent:
+      # tenho que tentar passar ele pra o pai
+      pass
+    else:
+      # ou seja, eu vou substituir a atual raiz pelo node_root (overriding)
+      node_root = Node()
+      node_root.records = medium
+      node_root.count += 1
+
+      node_root.pointers.insert(0, self.SLOTS) # inserindo o da esquerda
+      self.SLOTS += 1
+      node_root.pointers.insert(1, self.SLOTS) # inserindo o da direita
+      self.file.seek(0)
+      self.file.write(pickle.dumps(node_root))
+      self.close_file()
 
   def query(self, value):
     pass
