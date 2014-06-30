@@ -121,9 +121,7 @@ class Application(object):
             self.file.write(pickle.dumps(node))
             self.close_file()
             return True
-          import pdb; pdb.set_trace()
           if value > n.value and value < node.records[idx + 1 if idx+1 < node.count else idx].value and node.pointers[idx] == 0:
-            import pdb; pdb.set_trace()
             node.records.insert(idx, r)
             node.pointers.insert(idx, 0)
             node.count += 1
@@ -198,7 +196,7 @@ class Application(object):
     if node:
       for n,idx in enumerate(node.records):
         if value == n.value:
-          print 'chave: %s' n.value
+          print 'chave: %s' % n.value
           print n.label
           print n.age
           return True
