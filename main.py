@@ -81,7 +81,9 @@ class Application(object):
         value = raw_input()
         self.remove(value=value)
       elif operation is 'p':
-        self.print_file()
+        self.print_tree()
+      elif operation is 'o':
+        self.print_asc_tree();
       operation = raw_input()
     return
 
@@ -106,6 +108,7 @@ class Application(object):
     if isinstance(obj, Node): # IF RETRIEVE THE ROOT
       node = obj
       if node.count < (2 * self.ORDER): # ONLY IF HAS SPACE IN NODE
+        import pdb; pdb.set_trace()
         for idx,n in enumerate(node.records):
           if value == n.value:
             print 'chave ja existente: %s' % value
@@ -139,6 +142,9 @@ class Application(object):
         # tenho que percorrer todo a lista pra achar a posição
         aux_node = node.records
         for idx,n in enumerate(node.records):
+          if value == n.value:
+            print 'chave ja existente: %s' % value
+            return False
           if value < node.records[idx].value:
             aux_node.insert(idx, r) # insiro temporariamente para achar o meio
             break
@@ -215,6 +221,25 @@ class Application(object):
             return False
           index = n.pointers[idx]
           return self.query(value=value, position=index) # chamando a recursão para o outro nó
+
+  def print_tree(self, position=0):
+    self.file.seek(position * self.STRUCT_SIZE)
+    obj = None
+    try:
+      obj = pickle.loads(self.file.read())
+    except Exception:
+      return
+
+    while obj:
+      for idx,record in enumerate(obj.records):
+        print record[idx].value
+        # aqui tenho que printar no formato que ele quer
+      position += 1
+      return self.print_file(position)
+    return
+
+  def print_asc_tree(self):
+    pass
 
   def open_file(self):
     self.file = open(self.filename, 'r+b')
