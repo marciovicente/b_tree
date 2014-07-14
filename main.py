@@ -108,7 +108,7 @@ class Application(object):
         self.insert_record(0,r,None)
       elif operation is 'c':
         value = raw_input()
-        self.query_value(value)
+        self.consulta_chave(int(value))
       elif operation is 'r':
         value = raw_input()
         self.remove(value)
@@ -834,6 +834,48 @@ class Application(object):
       else:
         break
     return False
+
+  def consulta_chave(self,chave):
+    pos_chave = self.search_chave(chave,0)
+    if(pos_chave != None):
+        registro = self.print_uni_node(pos_chave,chave)
+    else:
+        print("chave nao encontrada: "+str(chave))
+
+
+  def search_chave(self,chave,pos):
+    retorno = None
+    while(pos != None and retorno == None):
+        pag = self.get_node(pos)
+        chave_exst = self.verify_val(chave,pag)
+        if chave_exst:
+            retorno = pos
+        else:   
+            if chave < pag.records[0].value:
+                pos = pag.records[0].prev
+            else:
+                for count in range(0,self.ORDER * 2):
+                    if(pag.records[count].value != None):
+                        if count == (self.ORDER * 2)-1:
+                            pos = pag.records[count].next
+                        else:
+                            if chave > pag.records[count].value:
+                                if pag.records[count+1].value != None:
+                                    if(chave < pag.records[count+1].value):
+                                        pos = pag.records[count].next
+                                else:
+                                    pos = pag.records[count].next
+                    else:
+                        break
+    return retorno
+
+  def print_uni_node(self,pos,chave):
+    node = self.get_node(pos)
+    for count in range(0,self.ORDER * 2):
+      if(node.records[count].value == chave):
+        print("chave: "+str(node.records[count].value))
+        print(node.records[count].label)
+        print(node.records[count].age)
 
 app = Application()
 app.main()
